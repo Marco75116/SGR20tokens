@@ -1,9 +1,22 @@
 import { Contract, EventLog, JsonRpcProvider } from "ethers";
 import { abiSrg20 } from "../constants/abis/abiSRG20";
-import { timeSerializer } from "./volume.helper";
-import { blockTimeEth, secInDay } from "../constants/constvar";
+import { blockTimeEth, secInHour } from "../constants/constvar";
 import { toMilli } from "./global.helper";
 require("dotenv").config();
+
+export const timeSerializerHour = (currentTimestamp: number) => {
+  const currentDate = new Date(currentTimestamp);
+  const utcTimestamp = Date.UTC(
+    currentDate.getUTCFullYear(),
+    currentDate.getUTCMonth(),
+    currentDate.getUTCDate(),
+    currentDate.getUTCHours(),
+    0,
+    0,
+    0
+  );
+  return utcTimestamp;
+};
 
 export const getGenesisBlock = async (
   srg20_Contract: Contract,
@@ -45,10 +58,10 @@ export const retrievePrice = async (
 
 export const getPresetArray = (startTime: number) => {
   try {
-    const secInDayMilli = toMilli(secInDay);
+    const secInHourMilli = toMilli(secInHour);
 
-    const endTime = timeSerializer(Date.now());
-    const amountDaysFromGen = (endTime - startTime) / secInDayMilli;
+    const endTime = timeSerializerHour(Date.now());
+    const amountDaysFromGen = (endTime - startTime) / secInHourMilli;
 
     const data = new Array(amountDaysFromGen).fill(0);
 
@@ -59,47 +72,57 @@ export const getPresetArray = (startTime: number) => {
 };
 
 export const retrieveArrayPrice = async (
+  provider: JsonRpcProvider,
   srg20_Contract: Contract,
   blockGen: { blockNumber: number; timestamp: number }
 ) => {
   try {
     let blockNumber = blockGen.blockNumber;
 
-    const blocksPerDay = secInDay / blockTimeEth;
-    const secInDayMilli = toMilli(secInDay);
-    const startTime = timeSerializer(
-      toMilli(blockGen.timestamp) + secInDayMilli
+    const blocksPerHour = secInHour / blockTimeEth;
+    const secInHourMilli = toMilli(secInHour);
+    const startTime = timeSerializerHour(
+      toMilli(blockGen.timestamp) + secInHourMilli
     );
 
     const data = getPresetArray(startTime);
+    const latestBlock = await provider.getBlockNumber();
+    const blockNumberFinality = (15 * 60) / blockTimeEth;
 
     const promises = data.map(async (element, index) => {
-      const srgPrice = await retrievePrice(
-        srg20_Contract,
-        blockNumber + index * blocksPerDay
-      );
-      return [startTime + index * secInDayMilli, srgPrice];
+      if (
+        latestBlock - blockNumberFinality >
+        blockNumber + index * blocksPerHour
+      ) {
+        const srgPrice = await retrievePrice(
+          srg20_Contract,
+          blockNumber + index * blocksPerHour
+        );
+        return [startTime + index * secInHourMilli, srgPrice];
+      }
     });
 
     const array = await Promise.all(promises);
+    const filteredArray = array.filter((element) => element !== undefined) as [
+      number
+    ][];
 
-    return array;
+    return filteredArray;
   } catch (error) {
     throw Error("retrieveArrayPrice failed :" + error);
   }
 };
 
-export const getPriceSrg20Engine = async () => {
+export const getPriceSrg20Engine = async (addressSRGToken: string) => {
   try {
     const provider = new JsonRpcProvider(process.env.RPC_URL_MAINNET);
-    const addressSRGToken = "0x4E6908fC4Fb8E97222f694Dc92B71743f615B2e9";
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
 
     const blockGen = await getGenesisBlock(srg20_Contract, provider);
-    const dataArray = (await retrieveArrayPrice(srg20_Contract, blockGen)).sort(
-      (a, b) => a[0] - b[0]
-    );
+    const dataArray = (
+      await retrieveArrayPrice(provider, srg20_Contract, blockGen)
+    ).sort((a, b) => a[0] - b[0]);
 
     return dataArray;
   } catch (error) {

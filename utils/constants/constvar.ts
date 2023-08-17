@@ -1,2 +1,3 @@
-export const secInDay = 60 * 60 * 24;
+export const secInHour = 60 * 60;
+export const secInDay = secInHour * 24;
 export const blockTimeEth = 12;

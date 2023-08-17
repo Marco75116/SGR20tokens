@@ -4,7 +4,7 @@ import { toMilli } from "./global.helper";
 import { DataVolume } from "./types/global.type";
 require("dotenv").config();
 
-export const timeSerializer = (currentTimestamp: number) => {
+export const timeSerializerDay = (currentTimestamp: number) => {
   const currentDate = new Date(currentTimestamp);
   const utcTimestamp = Date.UTC(
     currentDate.getUTCFullYear(),
@@ -40,10 +40,9 @@ export const sortFormatData = (dataVolume: DataVolume[]) => {
   }
 };
 
-export const volumeEngine = async () => {
+export const volumeEngine = async (addressSRGToken: string) => {
   try {
     const provider = new JsonRpcProvider(process.env.RPC_URL_MAINNET);
-    const addressSRGToken = "0x4E6908fC4Fb8E97222f694Dc92B71743f615B2e9";
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
     const pastEvents: EventLog[] = (await srg20_Contract.queryFilter(
@@ -64,7 +63,7 @@ export const volumeEngine = async () => {
             const existTimestamp = dataVolume.find((data) => {
               return (
                 data.timestamp ===
-                timeSerializer(toMilli(Number(block?.timestamp)))
+                timeSerializerDay(toMilli(Number(block?.timestamp)))
               );
             });
             if (existTimestamp) {
@@ -72,7 +71,7 @@ export const volumeEngine = async () => {
               existTimestamp.swaps += 1;
             } else {
               dataVolume.push({
-                timestamp: timeSerializer(toMilli(Number(block?.timestamp))),
+                timestamp: timeSerializerDay(toMilli(Number(block?.timestamp))),
                 volumePeriod: swapSize,
                 swaps: 1,
               });
