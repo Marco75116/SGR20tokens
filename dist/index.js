@@ -15,22 +15,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const price_helper_1 = require("./utils/helpers/price.helper");
 const volume_helper_1 = require("./utils/helpers/volume.helper");
+const liquidity_helper_1 = require("./utils/helpers/liquidity.helper");
 const port = process.env.PORT || 6002;
 const app = (0, express_1.default)();
 app.get("/prices", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const addressSRGToken = req.query.address;
-    // Check if the required parameter exists
     if (!addressSRGToken) {
         return res.status(400).json({ error: "Missing address parameter" });
     }
     try {
-        const addressSRGToken = req.query.address;
         const startTime = Date.now();
-        const array = yield (0, price_helper_1.getPriceSrg20Engine)(addressSRGToken);
+        const arrayPrices = yield (0, price_helper_1.getPriceSrg20Engine)(addressSRGToken);
         const endTime = Date.now();
         const elapsedTimeInSeconds = (endTime - startTime) / 1000;
         console.log("elapsedTimeInSeconds prices", elapsedTimeInSeconds);
-        res.send(array);
+        res.send(arrayPrices);
     }
     catch (error) {
         console.error("Error fetching prices:", error);
@@ -43,16 +42,33 @@ app.get("/volumes", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         return res.status(400).json({ error: "Missing address parameter" });
     }
     try {
-        const addressSRGToken = req.query.address;
         const startTime = Date.now();
-        const array = yield (0, volume_helper_1.volumeEngine)(addressSRGToken);
+        const arrayVolumes = yield (0, volume_helper_1.volumeEngine)(addressSRGToken);
         const endTime = Date.now();
         const elapsedTimeInSeconds = (endTime - startTime) / 1000;
         console.log("elapsedTimeInSeconds volumes ", elapsedTimeInSeconds);
-        res.send(array);
+        res.send(arrayVolumes);
     }
     catch (error) {
         console.error("Error fetching volumes:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}));
+app.get("/liquidities", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const addressSRGToken = req.query.address;
+    if (!addressSRGToken) {
+        return res.status(400).json({ error: "Missing address parameter" });
+    }
+    try {
+        const startTime = Date.now();
+        const arrayLiquities = yield (0, liquidity_helper_1.geLiquiditySrg20Engine)(addressSRGToken);
+        const endTime = Date.now();
+        const elapsedTimeInSeconds = (endTime - startTime) / 1000;
+        console.log("elapsedTimeInSeconds liquidities ", elapsedTimeInSeconds);
+        res.send(arrayLiquities);
+    }
+    catch (error) {
+        console.error("Error fetching liquidities:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 }));

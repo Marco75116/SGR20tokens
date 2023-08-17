@@ -41,7 +41,6 @@ export const retrievePrice = async (
   blockTag: number
 ) => {
   try {
-    const factorDecimals = 10 ** 9;
     const padding = 10 ** 18;
     const calculatePrice = await srg20_Contract.calculatePrice({
       blockTag: blockTag,
@@ -77,14 +76,13 @@ export const retrieveArrayPrice = async (
   blockGen: { blockNumber: number; timestamp: number }
 ) => {
   try {
-    let blockNumber = blockGen.blockNumber;
-
     const blocksPerHour = secInHour / blockTimeEth;
     const secInHourMilli = toMilli(secInHour);
     const startTime = timeSerializerHour(
       toMilli(blockGen.timestamp) + secInHourMilli
     );
 
+    let blockNumberStart = blockGen.blockNumber + blocksPerHour;
     const data = getPresetArray(startTime);
     const latestBlock = await provider.getBlockNumber();
     const blockNumberFinality = (15 * 60) / blockTimeEth;
@@ -92,11 +90,11 @@ export const retrieveArrayPrice = async (
     const promises = data.map(async (element, index) => {
       if (
         latestBlock - blockNumberFinality >
-        blockNumber + index * blocksPerHour
+        blockNumberStart + index * blocksPerHour
       ) {
         const srgPrice = await retrievePrice(
           srg20_Contract,
-          blockNumber + index * blocksPerHour
+          blockNumberStart + index * blocksPerHour
         );
         return [startTime + index * secInHourMilli, srgPrice];
       }
