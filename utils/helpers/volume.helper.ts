@@ -1,7 +1,7 @@
 import { Contract, EventLog, JsonRpcProvider } from "ethers";
 import { abiSrg20 } from "../constants/abis/abiSRG20";
-import { toMilli } from "./global.helper";
-import { DataVolume } from "./types/global.type";
+import { getRpcUrl, toMilli } from "./global.helper";
+import { Blockchain, DataVolume, blockchainEnum } from "./types/global.type";
 require("dotenv").config();
 
 export const timeSerializerDay = (currentTimestamp: number) => {
@@ -40,9 +40,13 @@ export const sortFormatData = (dataVolume: DataVolume[]) => {
   }
 };
 
-export const volumeEngine = async (addressSRGToken: string) => {
+export const volumeEngine = async (
+  addressSRGToken: string,
+  blockchain: Blockchain
+) => {
   try {
-    const provider = new JsonRpcProvider(process.env.RPC_URL_MAINNET);
+    const rpcUrl = getRpcUrl(blockchain);
+    const provider = new JsonRpcProvider(rpcUrl);
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
     const pastEvents: EventLog[] = (await srg20_Contract.queryFilter(

@@ -1,7 +1,8 @@
 import { Contract, EventLog, JsonRpcProvider } from "ethers";
 import { abiSrg20 } from "../constants/abis/abiSRG20";
-import { blockTimeEth, secInHour } from "../constants/constvar";
-import { toMilli } from "./global.helper";
+import { secInHour } from "../constants/constvar";
+import { getBlockTime, getRpcUrl, toMilli } from "./global.helper";
+import { Blockchain } from "./types/global.type";
 require("dotenv").config();
 
 export const timeSerializerHour = (currentTimestamp: number) => {
@@ -42,10 +43,10 @@ export const retrievePrice = async (
 ) => {
   try {
     const padding = 10 ** 18;
+    const factorSrgPrice = 10 ** 15;
     const calculatePrice = await srg20_Contract.calculatePrice({
       blockTag: blockTag,
     });
-    const factorSrgPrice = 10 ** 15;
     const srgPrice = await srg20_Contract.getSRGPrice({ blockTag: blockTag });
     return (
       (Number(srgPrice) / factorSrgPrice) * (Number(calculatePrice) / padding)
@@ -73,10 +74,12 @@ export const getPresetArray = (startTime: number) => {
 export const retrieveArrayPrice = async (
   provider: JsonRpcProvider,
   srg20_Contract: Contract,
-  blockGen: { blockNumber: number; timestamp: number }
+  blockGen: { blockNumber: number; timestamp: number },
+  blockchain: Blockchain
 ) => {
   try {
-    const blocksPerHour = secInHour / blockTimeEth;
+    const blockTime = getBlockTime(blockchain);
+    const blocksPerHour = secInHour / blockTime;
     const secInHourMilli = toMilli(secInHour);
     const startTime = timeSerializerHour(
       toMilli(blockGen.timestamp) + secInHourMilli
@@ -85,7 +88,7 @@ export const retrieveArrayPrice = async (
     let blockNumberStart = blockGen.blockNumber + blocksPerHour;
     const data = getPresetArray(startTime);
     const latestBlock = await provider.getBlockNumber();
-    const blockNumberFinality = (15 * 60) / blockTimeEth;
+    const blockNumberFinality = (15 * 60) / blockTime;
 
     const promises = data.map(async (element, index) => {
       if (
@@ -111,15 +114,20 @@ export const retrieveArrayPrice = async (
   }
 };
 
-export const getPriceSrg20Engine = async (addressSRGToken: string) => {
+export const getPriceSrg20Engine = async (
+  addressSRGToken: string,
+  blockchain: Blockchain
+) => {
   try {
-    const provider = new JsonRpcProvider(process.env.RPC_URL_MAINNET);
+    const rpcUrl = getRpcUrl(blockchain);
+
+    const provider = new JsonRpcProvider(rpcUrl);
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
 
     const blockGen = await getGenesisBlock(srg20_Contract, provider);
     const dataArray = (
-      await retrieveArrayPrice(provider, srg20_Contract, blockGen)
+      await retrieveArrayPrice(provider, srg20_Contract, blockGen, blockchain)
     ).sort((a, b) => a[0] - b[0]);
 
     return dataArray;

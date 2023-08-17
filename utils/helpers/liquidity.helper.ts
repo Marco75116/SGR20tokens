@@ -5,16 +5,19 @@ import {
   getPresetArray,
   timeSerializerHour,
 } from "./price.helper";
-import { blockTimeEth, secInHour } from "../constants/constvar";
-import { toMilli } from "./global.helper";
+import { secInHour } from "../constants/constvar";
+import { getBlockTime, getRpcUrl, toMilli } from "./global.helper";
+import { Blockchain } from "./types/global.type";
 
 export const retrieveArrayLiquidity = async (
   provider: JsonRpcProvider,
   srg20_Contract: Contract,
-  blockGen: { blockNumber: number; timestamp: number }
+  blockGen: { blockNumber: number; timestamp: number },
+  blockchain: Blockchain
 ) => {
   try {
-    const blocksPerHour = secInHour / blockTimeEth;
+    const blockTime = getBlockTime(blockchain);
+    const blocksPerHour = secInHour / blockTime;
     const secInHourMilli = toMilli(secInHour);
     const startTime = timeSerializerHour(
       toMilli(blockGen.timestamp) + secInHourMilli
@@ -22,7 +25,7 @@ export const retrieveArrayLiquidity = async (
 
     let blockNumberStart = blockGen.blockNumber + blocksPerHour;
     const latestBlock = await provider.getBlockNumber();
-    const blockNumberFinality = (15 * 60) / blockTimeEth;
+    const blockNumberFinality = (15 * 60) / blockTime;
 
     const data = getPresetArray(startTime);
 
@@ -68,9 +71,14 @@ export const retrieveLiquidityUSD = async (
   }
 };
 
-export const geLiquiditySrg20Engine = async (addressSRGToken: string) => {
+export const geLiquiditySrg20Engine = async (
+  addressSRGToken: string,
+  blockchain: Blockchain
+) => {
   try {
-    const provider = new JsonRpcProvider(process.env.RPC_URL_MAINNET);
+    const rpcUrl = getRpcUrl(blockchain);
+
+    const provider = new JsonRpcProvider(rpcUrl);
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
 
@@ -78,7 +86,8 @@ export const geLiquiditySrg20Engine = async (addressSRGToken: string) => {
     const dataArray = await retrieveArrayLiquidity(
       provider,
       srg20_Contract,
-      blockGen
+      blockGen,
+      blockchain
     );
 
     return dataArray;
