@@ -7,6 +7,7 @@ import {
   toMilli,
 } from "./global.helper";
 import { Blockchain, Period } from "./types/global.type";
+import { redisClient } from "../clients/redis.client";
 require("dotenv").config();
 
 export const timeSerializer = (currentTimestamp: number, period: Period) => {
@@ -26,16 +27,26 @@ export const timeSerializer = (currentTimestamp: number, period: Period) => {
 export const getGenesisBlock = async (
   srg20_Contract: Contract,
   provider: JsonRpcProvider
-) => {
+): Promise<{ blockNumber: number; timestamp: number }> => {
   try {
-    const result: EventLog[] = (await srg20_Contract.queryFilter(
-      "OwnershipTransferred"
-    )) as EventLog[];
-    const blockGen = await provider.getBlock(result[0].blockNumber);
-    return {
-      blockNumber: result[0].blockNumber,
-      timestamp: blockGen?.timestamp as number,
-    };
+    const cache = await redisClient.get("blockGen");
+
+    if (cache) {
+      return JSON.parse(cache);
+    } else {
+      const result: EventLog[] = (await srg20_Contract.queryFilter(
+        "OwnershipTransferred"
+      )) as EventLog[];
+      const blockGen = await provider.getBlock(result[0].blockNumber);
+      const jsonBlockGen = {
+        blockNumber: result[0].blockNumber,
+        timestamp: blockGen?.timestamp as number,
+      };
+      const jsonString = JSON.stringify(jsonBlockGen);
+      redisClient.set("blockGen", jsonString);
+
+      return jsonBlockGen;
+    }
   } catch (error) {
     throw Error("getGenesisBlock failed :" + error);
   }
