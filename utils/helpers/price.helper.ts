@@ -114,7 +114,6 @@ export const retrieveArrayPrice = async (
     });
 
     const array = await Promise.all(promises);
-    console.log("end", array);
     const filteredArray = array.filter((element) => element !== undefined) as [
       number
     ][];
