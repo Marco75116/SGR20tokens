@@ -1,17 +1,21 @@
 import { Contract, EventLog, JsonRpcProvider } from "ethers";
 import { abiSrg20 } from "../constants/abis/abiSRG20";
-import { secInHour } from "../constants/constvar";
-import { getBlockTime, getRpcUrl, toMilli } from "./global.helper";
-import { Blockchain } from "./types/global.type";
+import {
+  getBlockTime,
+  getPeriodInSeconds,
+  getRpcUrl,
+  toMilli,
+} from "./global.helper";
+import { Blockchain, Period } from "./types/global.type";
 require("dotenv").config();
 
-export const timeSerializerHour = (currentTimestamp: number) => {
+export const timeSerializer = (currentTimestamp: number, period: Period) => {
   const currentDate = new Date(currentTimestamp);
   const utcTimestamp = Date.UTC(
     currentDate.getUTCFullYear(),
     currentDate.getUTCMonth(),
     currentDate.getUTCDate(),
-    currentDate.getUTCHours(),
+    period === "d" ? 0 : currentDate.getUTCHours(),
     0,
     0,
     0
@@ -56,14 +60,16 @@ export const retrievePrice = async (
   }
 };
 
-export const getPresetArray = (startTime: number) => {
+export const getPresetArray = (
+  startTime: number,
+  periodInSecMili: number,
+  period: Period
+) => {
   try {
-    const secInHourMilli = toMilli(secInHour);
+    const endTime = timeSerializer(Date.now(), period);
+    const amountPeriodFromGen = (endTime - startTime) / periodInSecMili;
 
-    const endTime = timeSerializerHour(Date.now());
-    const amountDaysFromGen = (endTime - startTime) / secInHourMilli;
-
-    const data = new Array(amountDaysFromGen).fill(0);
+    const data = new Array(amountPeriodFromGen).fill(0);
 
     return data;
   } catch (error) {
@@ -75,35 +81,40 @@ export const retrieveArrayPrice = async (
   provider: JsonRpcProvider,
   srg20_Contract: Contract,
   blockGen: { blockNumber: number; timestamp: number },
-  blockchain: Blockchain
+  blockchain: Blockchain,
+  period: Period
 ) => {
   try {
     const blockTime = getBlockTime(blockchain);
-    const blocksPerHour = secInHour / blockTime;
-    const secInHourMilli = toMilli(secInHour);
-    const startTime = timeSerializerHour(
-      toMilli(blockGen.timestamp) + secInHourMilli
+    const periodInSecMili = toMilli(getPeriodInSeconds(period));
+    const blockPerPeriod = periodInSecMili / toMilli(blockTime);
+
+    const startTime = timeSerializer(
+      toMilli(blockGen.timestamp) + periodInSecMili,
+      period
     );
 
-    let blockNumberStart = blockGen.blockNumber + blocksPerHour;
-    const data = getPresetArray(startTime);
+    let blockNumberStart = blockGen.blockNumber + blockPerPeriod;
+
+    const data = getPresetArray(startTime, periodInSecMili, period);
     const latestBlock = await provider.getBlockNumber();
     const blockNumberFinality = (15 * 60) / blockTime;
 
     const promises = data.map(async (element, index) => {
       if (
         latestBlock - blockNumberFinality >
-        blockNumberStart + index * blocksPerHour
+        blockNumberStart + index * blockPerPeriod
       ) {
         const srgPrice = await retrievePrice(
           srg20_Contract,
-          blockNumberStart + index * blocksPerHour
+          blockNumberStart + index * blockPerPeriod
         );
-        return [startTime + index * secInHourMilli, srgPrice];
+        return [startTime + index * periodInSecMili, srgPrice];
       }
     });
 
     const array = await Promise.all(promises);
+    console.log("end", array);
     const filteredArray = array.filter((element) => element !== undefined) as [
       number
     ][];
@@ -116,7 +127,8 @@ export const retrieveArrayPrice = async (
 
 export const getPriceSrg20Engine = async (
   addressSRGToken: string,
-  blockchain: Blockchain
+  blockchain: Blockchain,
+  period: Period
 ) => {
   try {
     const rpcUrl = getRpcUrl(blockchain);
@@ -127,7 +139,13 @@ export const getPriceSrg20Engine = async (
 
     const blockGen = await getGenesisBlock(srg20_Contract, provider);
     const dataArray = (
-      await retrieveArrayPrice(provider, srg20_Contract, blockGen, blockchain)
+      await retrieveArrayPrice(
+        provider,
+        srg20_Contract,
+        blockGen,
+        blockchain,
+        period
+      )
     ).sort((a, b) => a[0] - b[0]);
 
     return dataArray;

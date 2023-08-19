@@ -1,4 +1,5 @@
-import { Blockchain, blockchainEnum } from "./types/global.type";
+import { secInDay, secInHour } from "../constants/constvar";
+import { Blockchain, Period, blockchainEnum } from "./types/global.type";
 
 export const toMilli = (timestamp: number) => {
   try {
@@ -29,10 +30,18 @@ export const getBlockTime = (blockchain: Blockchain) => {
         ? 12
         : blockchain === blockchainEnum.arbitrum
         ? 1
-        : 5;
+        : 3;
 
     return blocktime;
   } catch (error) {
     throw Error("getBlockTime failed :" + error);
+  }
+};
+
+export const getPeriodInSeconds = (period: Period) => {
+  try {
+    return period === "h" ? secInHour : secInDay;
+  } catch (error) {
+    throw Error("getBlockPerPeriod failed :" + error);
   }
 };

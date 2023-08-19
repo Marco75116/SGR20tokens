@@ -11,3 +11,5 @@ export const blockchainEnum = {
 } as const;
 
 export type Blockchain = (typeof blockchainEnum)[keyof typeof blockchainEnum];
+
+export type Period = "h" | "d";

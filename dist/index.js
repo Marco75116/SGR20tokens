@@ -21,12 +21,13 @@ const app = (0, express_1.default)();
 app.get("/prices", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const addressSRGToken = req.query.address;
     const blockchain = req.query.blockchain;
-    if (!addressSRGToken || !blockchain) {
+    const period = req.query.period;
+    if (!addressSRGToken || !blockchain || !period) {
         return res.status(400).json({ error: "Missing  parameter" });
     }
     try {
         const startTime = Date.now();
-        const arrayPrices = yield (0, price_helper_1.getPriceSrg20Engine)(addressSRGToken, blockchain);
+        const arrayPrices = yield (0, price_helper_1.getPriceSrg20Engine)(addressSRGToken, blockchain, period);
         const endTime = Date.now();
         const elapsedTimeInSeconds = (endTime - startTime) / 1000;
         console.log("elapsedTimeInSeconds prices", elapsedTimeInSeconds);
@@ -59,12 +60,13 @@ app.get("/volumes", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 app.get("/liquidities", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const addressSRGToken = req.query.address;
     const blockchain = req.query.blockchain;
-    if (!addressSRGToken || !blockchain) {
+    const period = req.query.period;
+    if (!addressSRGToken || !blockchain || !period) {
         return res.status(400).json({ error: "Missing  parameter" });
     }
     try {
         const startTime = Date.now();
-        const arrayLiquities = yield (0, liquidity_helper_1.geLiquiditySrg20Engine)(addressSRGToken, blockchain);
+        const arrayLiquities = yield (0, liquidity_helper_1.geLiquiditySrg20Engine)(addressSRGToken, blockchain, period);
         const endTime = Date.now();
         const elapsedTimeInSeconds = (endTime - startTime) / 1000;
         console.log("elapsedTimeInSeconds liquidities ", elapsedTimeInSeconds);
