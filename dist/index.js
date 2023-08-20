@@ -16,6 +16,7 @@ const express_1 = __importDefault(require("express"));
 const price_helper_1 = require("./utils/helpers/price.helper");
 const volume_helper_1 = require("./utils/helpers/volume.helper");
 const liquidity_helper_1 = require("./utils/helpers/liquidity.helper");
+const redis_helper_1 = require("./utils/helpers/redis.helper");
 const port = process.env.PORT || 6002;
 const app = (0, express_1.default)();
 app.get("/prices", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -78,5 +79,7 @@ app.get("/liquidities", (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 }));
 app.listen(port, () => console.log("Server running on port 6002"));
-const main = () => __awaiter(void 0, void 0, void 0, function* () { });
+const main = () => __awaiter(void 0, void 0, void 0, function* () {
+    (0, redis_helper_1.initiateCacheSRGPrice)();
+});
 main();

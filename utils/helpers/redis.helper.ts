@@ -71,7 +71,8 @@ export const initiateCacheSRGPrice = async (
       data.map(async (element, index) => {
         if (latestBlock > blockNumberStart + index * blockPerPeriod) {
           const deb = blockNumberStart + index * blockPerPeriod;
-          const price = await srg20_Contract.getSRGPrice({ deb });
+          console.log(deb);
+          const price = await srg20_Contract.getSRGPrice({ blockTag: deb });
           jsonPrice[`${deb}`] = Number(price);
         }
       })

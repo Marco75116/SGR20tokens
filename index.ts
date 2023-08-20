@@ -3,6 +3,7 @@ import { getPriceSrg20Engine } from "./utils/helpers/price.helper";
 import { volumeEngine } from "./utils/helpers/volume.helper";
 import { geLiquiditySrg20Engine } from "./utils/helpers/liquidity.helper";
 import { Blockchain, Period } from "./utils/helpers/types/global.type";
+import { initiateCacheSRGPrice } from "./utils/helpers/redis.helper";
 
 const port = process.env.PORT || 6002;
 
@@ -80,6 +81,8 @@ app.get("/liquidities", async (req, res) => {
 
 app.listen(port, () => console.log("Server running on port 6002"));
 
-const main = async () => {};
+const main = async () => {
+  // initiateCacheSRGPrice();
+};
 
 main();
