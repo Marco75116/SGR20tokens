@@ -4,6 +4,10 @@ import { volumeEngine } from "./utils/helpers/volume.helper";
 import { geLiquiditySrg20Engine } from "./utils/helpers/liquidity.helper";
 import { Blockchain, Period } from "./utils/helpers/types/global.type";
 import { initiateCacheSRGPrice } from "./utils/helpers/redis.helper";
+import {
+  getBlockStartSerializer,
+  testReadFunction,
+} from "./utils/helpers/global.helper";
 
 const port = process.env.PORT || 6002;
 
@@ -83,6 +87,8 @@ app.listen(port, () => console.log("Server running on port 6002"));
 
 const main = async () => {
   // initiateCacheSRGPrice();
+  // testReadFunction("0x2225c9764fe39001c7cb1cbde25a3443d5caed7b", 16424133);
+  // console.log(getBlockStartSerializer(17054510));
 };
 
 main();

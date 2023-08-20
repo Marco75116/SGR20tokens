@@ -2,6 +2,7 @@ import { Contract, EventLog, JsonRpcProvider } from "ethers";
 import { redisClient } from "../clients/redis.client";
 import { Period, blockchainEnum } from "./types/global.type";
 import {
+  getBlockStartSerializer,
   getBlockTime,
   getPeriodInSeconds,
   getRpcUrl,
@@ -13,10 +14,15 @@ import { getPresetArray } from "./price.helper";
 
 export const getGenesisBlock = async (
   srg20_Contract: Contract,
-  provider: JsonRpcProvider
+  provider: JsonRpcProvider,
+  addressSRGToken: string
 ): Promise<{ blockNumber: number; timestamp: number }> => {
   try {
-    const cache = await redisClient.get("blockGen");
+    const cache = await redisClient
+      .get(`blockGen${addressSRGToken}`)
+      .catch((error) => {
+        console.log("redisClient.get failed :" + error);
+      });
 
     if (cache) {
       return JSON.parse(cache);
@@ -24,13 +30,14 @@ export const getGenesisBlock = async (
       const result: EventLog[] = (await srg20_Contract.queryFilter(
         "OwnershipTransferred"
       )) as EventLog[];
-      const blockGen = await provider.getBlock(result[0].blockNumber);
+      const blockStartSerialed = getBlockStartSerializer(result[0].blockNumber);
+      const blockGen = await provider.getBlock(blockStartSerialed);
       const jsonBlockGen = {
-        blockNumber: result[0].blockNumber,
+        blockNumber: blockStartSerialed,
         timestamp: blockGen?.timestamp as number,
       };
       const jsonString = JSON.stringify(jsonBlockGen);
-      redisClient.set("blockGen", jsonString);
+      redisClient.set(`blockGen${addressSRGToken}`, jsonString);
 
       return jsonBlockGen;
     }
@@ -51,7 +58,11 @@ export const initiateCacheSRGPrice = async (
       abiSrg20,
       provider
     );
-    const blockGen = await getGenesisBlock(srg20_Contract, provider);
+    const blockGen = await getGenesisBlock(
+      srg20_Contract,
+      provider,
+      "0x4E6908fC4Fb8E97222f694Dc92B71743f615B2e9"
+    );
     const blockTime = getBlockTime(blockchain);
     const periodInSecMili = toMilli(getPeriodInSeconds(period));
     const blockPerPeriod = periodInSecMili / toMilli(blockTime);

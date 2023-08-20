@@ -123,7 +123,12 @@ export const getPriceSrg20Engine = async (
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
 
-    const blockGen = await getGenesisBlock(srg20_Contract, provider);
+    const blockGen = await getGenesisBlock(
+      srg20_Contract,
+      provider,
+      addressSRGToken
+    );
+
     const dataArray = (
       await retrieveArrayPrice(
         provider,

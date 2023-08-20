@@ -4,3 +4,6 @@ export const padding = 10 ** 18;
 export const factorSrgPrice = 10 ** 15;
 export const liquidityFactor = 10 ** 9;
 export const initialLiquidity = 10 ** 5;
+export const baseNumberSrgPrice = 16417237;
+export const stepBlockPerHourETH = 300;
+export const latestBlockAnalysed = 17952937;

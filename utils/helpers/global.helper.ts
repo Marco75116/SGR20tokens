@@ -1,5 +1,13 @@
-import { secInDay, secInHour } from "../constants/constvar";
+import { Contract, JsonRpcProvider } from "ethers";
+import {
+  baseNumberSrgPrice,
+  latestBlockAnalysed,
+  secInDay,
+  secInHour,
+  stepBlockPerHourETH,
+} from "../constants/constvar";
 import { Blockchain, Period, blockchainEnum } from "./types/global.type";
+import { abiSrg20 } from "../constants/abis/abiSRG20";
 
 export const toMilli = (timestamp: number) => {
   try {
@@ -58,4 +66,34 @@ export const timeSerializer = (currentTimestamp: number, period: Period) => {
     0
   );
   return utcTimestamp;
+};
+
+export const testReadFunction = async (
+  addressSRGToken: string,
+  blockTag: number
+) => {
+  try {
+    const rpcUrl = getRpcUrl(blockchainEnum.mainnet);
+
+    const provider = new JsonRpcProvider(rpcUrl);
+
+    const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
+    const liquidity = await srg20_Contract.getLiquidity({
+      blockTag: blockTag,
+    });
+  } catch (error) {
+    console.log("testReadFunction failed :" + error);
+  }
+};
+
+export const getBlockStartSerializer = (originalValue: number) => {
+  const numberOfSteps = Math.ceil(
+    (originalValue - baseNumberSrgPrice) / stepBlockPerHourETH
+  );
+
+  const newValue = baseNumberSrgPrice + numberOfSteps * stepBlockPerHourETH;
+
+  const blockStart = Math.min(newValue, latestBlockAnalysed);
+
+  return blockStart;
 };

@@ -33,13 +33,14 @@ export const retrieveArrayLiquidity = async (
       period
     );
 
-    let blockNumberStart = blockGen.blockNumber + blockPerPeriod;
     const latestBlockPromise = provider.getBlockNumber();
     const jsonPricesPromise = redisClient
       .get("srgPrices")
       .then((result: any) => {
         return JSON.parse(result);
       });
+
+    let blockNumberStart = blockGen.blockNumber + blockPerPeriod;
 
     const [latestBlock, jsonPrices] = await Promise.all([
       latestBlockPromise,
@@ -89,7 +90,7 @@ export const retrieveLiquidityUSD = async (
       (jsonPrices[`${blockTag}`] / factorSrgPrice)
     );
   } catch (error) {
-    throw Error("retrieveLiquidityUSD failed :" + error);
+    throw Error(`retrieveLiquidityUSD failed ${blockTag}  :` + error);
   }
 };
 
@@ -105,7 +106,12 @@ export const geLiquiditySrg20Engine = async (
 
     const srg20_Contract = new Contract(addressSRGToken, abiSrg20, provider);
 
-    const blockGen = await getGenesisBlock(srg20_Contract, provider);
+    const blockGen = await getGenesisBlock(
+      srg20_Contract,
+      provider,
+      addressSRGToken
+    );
+
     const dataArray = await retrieveArrayLiquidity(
       provider,
       srg20_Contract,
