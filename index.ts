@@ -3,7 +3,6 @@ import { getPriceSrg20Engine } from "./utils/helpers/price.helper";
 import { volumeEngine } from "./utils/helpers/volume.helper";
 import { geLiquiditySrg20Engine } from "./utils/helpers/liquidity.helper";
 import { Blockchain, Period } from "./utils/helpers/types/global.type";
-import { redisClient } from "./utils/clients/redis.client";
 
 const port = process.env.PORT || 6002;
 

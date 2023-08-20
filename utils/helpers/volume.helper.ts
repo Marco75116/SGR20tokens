@@ -1,23 +1,8 @@
 import { Contract, EventLog, JsonRpcProvider } from "ethers";
 import { abiSrg20 } from "../constants/abis/abiSRG20";
-import { getRpcUrl, toMilli } from "./global.helper";
-import { Blockchain, DataVolume, blockchainEnum } from "./types/global.type";
+import { getRpcUrl, timeSerializer, toMilli } from "./global.helper";
+import { Blockchain, DataVolume } from "./types/global.type";
 require("dotenv").config();
-
-export const timeSerializerDay = (currentTimestamp: number) => {
-  const currentDate = new Date(currentTimestamp);
-  const utcTimestamp = Date.UTC(
-    currentDate.getUTCFullYear(),
-    currentDate.getUTCMonth(),
-    currentDate.getUTCDate(),
-    0,
-    0,
-    0,
-    0
-  );
-
-  return utcTimestamp;
-};
 
 export const sortFormatData = (dataVolume: DataVolume[]) => {
   try {
@@ -67,7 +52,7 @@ export const volumeEngine = async (
             const existTimestamp = dataVolume.find((data) => {
               return (
                 data.timestamp ===
-                timeSerializerDay(toMilli(Number(block?.timestamp)))
+                timeSerializer(toMilli(Number(block?.timestamp)), "d")
               );
             });
             if (existTimestamp) {
@@ -75,7 +60,10 @@ export const volumeEngine = async (
               existTimestamp.swaps += 1;
             } else {
               dataVolume.push({
-                timestamp: timeSerializerDay(toMilli(Number(block?.timestamp))),
+                timestamp: timeSerializer(
+                  toMilli(Number(block?.timestamp)),
+                  "d"
+                ),
                 volumePeriod: swapSize,
                 swaps: 1,
               });

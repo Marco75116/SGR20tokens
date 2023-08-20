@@ -45,3 +45,17 @@ export const getPeriodInSeconds = (period: Period) => {
     throw Error("getBlockPerPeriod failed :" + error);
   }
 };
+
+export const timeSerializer = (currentTimestamp: number, period: Period) => {
+  const currentDate = new Date(currentTimestamp);
+  const utcTimestamp = Date.UTC(
+    currentDate.getUTCFullYear(),
+    currentDate.getUTCMonth(),
+    currentDate.getUTCDate(),
+    period === "d" ? 0 : currentDate.getUTCHours(),
+    0,
+    0,
+    0
+  );
+  return utcTimestamp;
+};

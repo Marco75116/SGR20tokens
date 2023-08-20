@@ -1,17 +1,21 @@
 import { Contract, JsonRpcProvider } from "ethers";
 import { abiSrg20 } from "../constants/abis/abiSRG20";
-import {
-  getGenesisBlock,
-  getPresetArray,
-  timeSerializer,
-} from "./price.helper";
+import { getPresetArray } from "./price.helper";
 import {
   getBlockTime,
   getPeriodInSeconds,
   getRpcUrl,
+  timeSerializer,
   toMilli,
 } from "./global.helper";
 import { Blockchain, Period } from "./types/global.type";
+import { getGenesisBlock } from "./redis.helper";
+import {
+  factorSrgPrice,
+  initialLiquidity,
+  liquidityFactor,
+} from "../constants/constvar";
+import { redisClient } from "../clients/redis.client";
 
 export const retrieveArrayLiquidity = async (
   provider: JsonRpcProvider,
@@ -30,7 +34,18 @@ export const retrieveArrayLiquidity = async (
     );
 
     let blockNumberStart = blockGen.blockNumber + blockPerPeriod;
-    const latestBlock = await provider.getBlockNumber();
+    const latestBlockPromise = provider.getBlockNumber();
+    const jsonPricesPromise = redisClient
+      .get("srgPrices")
+      .then((result: any) => {
+        return JSON.parse(result);
+      });
+
+    const [latestBlock, jsonPrices] = await Promise.all([
+      latestBlockPromise,
+      jsonPricesPromise,
+    ]);
+
     const blockNumberFinality = (15 * 60) / blockTime;
 
     const data = getPresetArray(startTime, periodInSecMili, period);
@@ -42,7 +57,8 @@ export const retrieveArrayLiquidity = async (
       ) {
         const liquidityUSD = await retrieveLiquidityUSD(
           srg20_Contract,
-          blockNumberStart + index * blockPerPeriod
+          blockNumberStart + index * blockPerPeriod,
+          jsonPrices
         );
         return [startTime + index * periodInSecMili, liquidityUSD];
       }
@@ -60,17 +76,17 @@ export const retrieveArrayLiquidity = async (
 
 export const retrieveLiquidityUSD = async (
   srg20_Contract: Contract,
-  blockTag: number
+  blockTag: number,
+  jsonPrices: any
 ) => {
   try {
-    const liquidityFactor = 10 ** 9;
-    const initialLiquidity = 10 ** 5;
-    const liquidity = await srg20_Contract.getLiquidity({ blockTag: blockTag });
-    const srgPrice = await srg20_Contract.getSRGPrice({ blockTag: blockTag });
-    const factorSrgPrice = 10 ** 15;
+    const liquidity = await srg20_Contract.getLiquidity({
+      blockTag: blockTag,
+    });
+
     return (
       (Number(liquidity) / liquidityFactor - initialLiquidity) *
-      (Number(srgPrice) / factorSrgPrice)
+      (jsonPrices[`${blockTag}`] / factorSrgPrice)
     );
   } catch (error) {
     throw Error("retrieveLiquidityUSD failed :" + error);
