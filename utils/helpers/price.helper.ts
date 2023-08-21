@@ -20,6 +20,15 @@ export const retrievePrice = async (
 ) => {
   try {
     const calculatePrice = await srg20_Contract.calculatePrice({ blockTag });
+    if (!jsonPrices[`${blockTag}`]) {
+      const price = await srg20_Contract.getSRGPrice({ blockTag });
+      jsonPrices[`${blockTag}`] = Number(price);
+      const jsonString = JSON.stringify(jsonPrices);
+      redisClient.set("srgPrices", jsonString);
+      return (
+        (Number(price) / factorSrgPrice) * (Number(calculatePrice) / padding)
+      );
+    }
     return (
       (jsonPrices[`${blockTag}`] / factorSrgPrice) *
       (Number(calculatePrice) / padding)
